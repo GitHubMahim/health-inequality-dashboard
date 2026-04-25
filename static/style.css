@@ -1,0 +1,263 @@
+/* ── Reset ──────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #f0f4f9;
+  color: #1a2a3a;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+header {
+  height: 52px;
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 20px;
+  box-shadow: 0 2px 8px rgba(13,71,161,0.35);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.header-title h1 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.header-sub {
+  font-size: 0.65rem;
+  color: #90caf9;
+  display: block;
+  margin-top: 1px;
+}
+
+/* ── Controls (right side of header) ───────────────────────────────── */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.ctrl-label {
+  font-size: 0.65rem;
+  color: #bbdefb;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  white-space: nowrap;
+}
+
+.ctrl-label select {
+  font-size: 0.7rem;
+  padding: 2px 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(144,202,249,0.5);
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  max-width: 150px;
+  cursor: pointer;
+  outline: none;
+}
+.ctrl-label select:focus { border-color: #64b5f6; }
+.ctrl-label select option { color: #1a2a3a; background: #fff; }
+
+.ctrl-btn {
+  font-size: 0.7rem;
+  padding: 4px 11px;
+  border-radius: 4px;
+  border: 1px solid rgba(144,202,249,0.5);
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.ctrl-btn:hover { background: rgba(255,255,255,0.25); }
+
+.sel-count {
+  font-size: 0.68rem;
+  color: #ffcc02;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+/* ── Loading ────────────────────────────────────────────────────────── */
+#loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 52px);
+  font-size: 1rem;
+  color: #1565c0;
+  letter-spacing: 0.5px;
+}
+
+/* ── Dashboard shell ────────────────────────────────────────────────── */
+#dashboard {
+  height: calc(100vh - 52px);
+  padding: 7px;
+}
+
+/* ── 2×2 chart grid ─────────────────────────────────────────────────── */
+.charts-grid {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 7px;
+}
+
+/* ── Individual chart panels ────────────────────────────────────────── */
+.chart-panel {
+  background: #fff;
+  border: 1px solid #dce6f5;
+  border-radius: 10px;
+  box-shadow: 0 1px 6px rgba(21,101,192,0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0; /* allow flex children to shrink */
+}
+
+.panel-header {
+  padding: 6px 12px 4px;
+  flex-shrink: 0;
+  border-bottom: 1px solid #eef3fc;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.panel-title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #1565c0;
+}
+
+.panel-sub {
+  font-size: 0.65rem;
+  color: #7a9abb;
+  font-weight: 400;
+}
+
+.chart-body {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+}
+
+/* Parallel coordinates needs horizontal scroll */
+#parallel-panel .chart-body {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Heatmap allows scroll if needed */
+#heatmap-panel .chart-body {
+  overflow: auto;
+}
+
+/* ── Shared tooltip ──────────────────────────────────────────────────── */
+#tooltip {
+  position: fixed;
+  pointer-events: none;
+  background: #fff;
+  border: 1px solid #90caf9;
+  border-radius: 8px;
+  padding: 8px 13px;
+  font-size: 0.74rem;
+  color: #1a2a3a;
+  line-height: 1.7;
+  box-shadow: 0 4px 16px rgba(21,101,192,0.18);
+  opacity: 0;
+  transition: opacity 0.08s;
+  z-index: 9999;
+  max-width: 230px;
+}
+#tooltip b { color: #1565c0; }
+
+/* ── D3 shared axis styles ───────────────────────────────────────────── */
+.axis path, .axis line { stroke: #d0ddf0; stroke-width: 0.8; }
+.axis text { fill: #6a8aaa; font-size: 10px; font-family: inherit; }
+.grid line { stroke: #eaf0fb; stroke-dasharray: 3, 3; }
+.grid path { stroke: none; }
+
+/* ── Map ─────────────────────────────────────────────────────────────── */
+.county-path {
+  stroke: #fff;
+  stroke-width: 0.25;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+.county-path.dimmed { opacity: 0.1; }
+.county-path:hover { stroke: #1565c0; stroke-width: 1.5; }
+
+.state-border {
+  fill: none;
+  stroke: #9aaec0;
+  stroke-width: 0.65;
+  pointer-events: none;
+}
+
+/* Map legend */
+.map-legend text { font-family: inherit; }
+
+/* ── Scatter plot ────────────────────────────────────────────────────── */
+.dot {
+  cursor: pointer;
+  stroke: rgba(255,255,255,0.6);
+  stroke-width: 0.5;
+  transition: opacity 0.12s, r 0.1s;
+}
+.dot.dimmed { opacity: 0.06 !important; }
+.dot.selected { stroke: #fff; stroke-width: 1.2; }
+
+/* d3.brush appearance */
+.selection {
+  fill: rgba(21,101,192,0.08);
+  stroke: #1565c0;
+  stroke-width: 1;
+}
+.handle { fill: #1565c0; opacity: 0.4; }
+
+/* ── Parallel Coordinates ────────────────────────────────────────────── */
+.pcp-line {
+  fill: none;
+  stroke-width: 0.9;
+  transition: opacity 0.1s;
+}
+.pcp-line.dimmed { opacity: 0.04; }
+.pcp-line.highlighted { stroke-width: 1.4; opacity: 0.85; }
+
+.pcp-brush .selection {
+  fill: rgba(21,101,192,0.18);
+  stroke: #1565c0;
+  stroke-width: 1;
+}
+
+/* ── Correlation Heatmap ─────────────────────────────────────────────── */
+.hm-cell {
+  cursor: pointer;
+  stroke: #fff;
+  stroke-width: 0.5;
+  transition: stroke-width 0.1s;
+}
+.hm-cell:hover { stroke: #1565c0; stroke-width: 1.5; }
+.hm-cell.axis-highlight { stroke: #ff8f00; stroke-width: 1.5; }
+
+.hm-label {
+  font-family: inherit;
+  font-size: 8.5px;
+  fill: #5a7a9a;
+}

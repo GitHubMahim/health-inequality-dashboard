@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>U.S. County Health Inequality Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <!-- D3 v7 -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <!-- TopoJSON client -->
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+</head>
+<body>
+
+  <!-- ── Header & Controls ──────────────────────────────────────────── -->
+  <header>
+    <div class="header-title">
+      <h1>U.S. County Health Inequality</h1>
+      <span class="header-sub">Interactive Visual Analytics · CSE 564</span>
+    </div>
+    <div class="controls">
+      <label class="ctrl-label">Map Variable
+        <select id="map-var-select"></select>
+      </label>
+      <label class="ctrl-label">Scatter X
+        <select id="scatter-x-select"></select>
+      </label>
+      <label class="ctrl-label">Scatter Y
+        <select id="scatter-y-select"></select>
+      </label>
+      <button id="clear-btn" class="ctrl-btn">Clear Selection</button>
+      <span id="sel-count" class="sel-count"></span>
+    </div>
+  </header>
+
+  <!-- ── Loading indicator ─────────────────────────────────────────── -->
+  <div id="loading">Loading data &amp; map…</div>
+
+  <!-- ── Main dashboard ────────────────────────────────────────────── -->
+  <div id="dashboard" style="display:none">
+    <div class="charts-grid">
+
+      <!-- Top-left: Choropleth Map -->
+      <div class="chart-panel" id="map-panel">
+        <div class="panel-header">
+          <span class="panel-title">Geographic Map</span>
+          <span class="panel-sub" id="map-var-label"></span>
+        </div>
+        <div class="chart-body" id="map-wrap"></div>
+      </div>
+
+      <!-- Top-right: Scatter Plot -->
+      <div class="chart-panel" id="scatter-panel">
+        <div class="panel-header">
+          <span class="panel-title">Scatter Plot</span>
+          <span class="panel-sub">drag to select · shift+click to multi-select</span>
+        </div>
+        <div class="chart-body" id="scatter-wrap"></div>
+      </div>
+
+      <!-- Bottom-left: Parallel Coordinates -->
+      <div class="chart-panel" id="parallel-panel">
+        <div class="panel-header">
+          <span class="panel-title">Parallel Coordinates</span>
+          <span class="panel-sub">brush each axis to filter · scroll →</span>
+        </div>
+        <div class="chart-body" id="parallel-wrap"></div>
+      </div>
+
+      <!-- Bottom-right: Correlation Heatmap -->
+      <div class="chart-panel" id="heatmap-panel">
+        <div class="panel-header">
+          <span class="panel-title">Correlation Heatmap</span>
+          <span class="panel-sub">click cell → set scatter axes</span>
+        </div>
+        <div class="chart-body" id="heatmap-wrap"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Shared tooltip ────────────────────────────────────────────── -->
+  <div id="tooltip"></div>
+
+  <!-- ── Chart modules (order matters: charts before main) ─────────── -->
+  <script src="/static/map.js"></script>
+  <script src="/static/scatter.js"></script>
+  <script src="/static/parallel.js"></script>
+  <script src="/static/heatmap.js"></script>
+  <script src="/static/main.js"></script>
+
+</body>
+</html>
