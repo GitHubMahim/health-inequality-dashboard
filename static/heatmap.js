@@ -57,7 +57,7 @@ window.HeatmapChart = (() => {
     // don't pile on top of each other. The vertical footprint is taller
     // (length × sin60° ≈ length × 0.87), so labelH needs ~95px to clear.
     const labelW = 78;
-    const labelH = 30;
+    const labelH = 70;
     const legH   = 22;
     const cellSize = Math.max(
       6,
@@ -133,8 +133,8 @@ window.HeatmapChart = (() => {
       const cx = i * cellSize + cellSize / 2;
       xLabG.append('text')
         .attr('class', 'hm-label')
-        .attr('x', cx)
-        .attr('y', 0)
+        .attr('x', cx +45)
+        .attr('y', -10)
         .attr('text-anchor', 'end')
         .attr('transform', `rotate(-45, ${cx}, 0)`)
         .text(SHORT[c] || c);
