@@ -3,6 +3,19 @@
 // Click a county to select it (updates all linked views).
 // Shift/Ctrl+click to add/remove from multi-selection.
 // Click ocean/background to clear selection.
+//
+// PERFORMANCE NOTES
+// -----------------
+// The choropleth has ~3,000 county <path> nodes. Re-running attr('fill', ...)
+// across all of them on every brush event is what makes the dashboard feel
+// laggy. To fix this we split work into two paths:
+//
+//   recolor()   — runs only when `colorVar` changes. Recomputes the color
+//                 scale, paints every county, redraws the legend.
+//
+//   update()    — runs on every selection change. Touches ONLY the .dimmed
+//                 class on each path. CSS handles the visual change in one
+//                 batched paint. No fill recomputation. No legend redraw.
 
 window.MapChart = (() => {
   let svg, pathG, legendG;
@@ -10,6 +23,9 @@ window.MapChart = (() => {
   let allData = [];
   let fipsMap  = {};    // "01001" -> data record
   let gradUid  = 'map-grad-' + Math.random().toString(36).slice(2);
+
+  // Cache key so recolor() can short-circuit when called for the same colorVar
+  let lastColorVar = null;
 
   const tip = () => d3.select('#tooltip');
 
@@ -73,34 +89,58 @@ window.MapChart = (() => {
       }
     });
 
+    // Initial paint: compute scale + colors + legend, then apply selection state
+    recolor();
     update();
   }
 
-  // ── Public: update (re-color + apply dimming based on current state) ──
-  function update() {
+  // ── Public: recolor ──────────────────────────────────────────────────
+  // Run when colorVar changes. Heavy: rebuilds scale, repaints every path,
+  // redraws legend. Should NOT be called from selection-change paths.
+  function recolor() {
     if (!svg) return;
-
     const col = window.state.colorVar;
-    const sel = window.state.selection;
+    if (col === lastColorVar) return;   // nothing to do
+    lastColorVar = col;
 
-    // Build color scale from valid values
     const vals = allData.filter(d => d[col] != null).map(d => d[col]);
     const ext  = d3.extent(vals);
     colorScale = d3.scaleSequential(d3.interpolateYlOrRd).domain(ext);
 
+    // Data-driven fill via attr; no-data counties get a class so the
+    // CSS variable (--county-no-data) handles the color and theme switching.
     pathG.selectAll('.county-path')
       .attr('fill', f => {
         const d = fipsMap[String(f.id).padStart(5, '0')];
-        if (!d || d[col] == null) return '#e0e4ea';
+        if (!d || d[col] == null) return null;   // CSS .no-data takes over
         return colorScale(d[col]);
       })
-      .classed('dimmed', f => {
-        if (sel.size === 0) return false;
+      .classed('no-data', f => {
         const d = fipsMap[String(f.id).padStart(5, '0')];
-        return d ? !sel.has(d.fips) : false;
+        return !d || d[col] == null;
       });
 
     drawLegend(col, ext[0], ext[1]);
+  }
+
+  // ── Public: update (selection changed only) ──────────────────────────
+  // Cheap path. Just toggle the `dimmed` class — CSS handles the paint.
+  function update() {
+    if (!svg) return;
+
+    // If colorVar drifted (possible during init order), make sure colors
+    // are current. recolor() short-circuits if nothing changed.
+    if (window.state.colorVar !== lastColorVar) recolor();
+
+    const sel = window.state.selection;
+    const hasSel = sel.size > 0;
+
+    pathG.selectAll('.county-path')
+      .classed('dimmed', f => {
+        if (!hasSel) return false;
+        const d = fipsMap[String(f.id).padStart(5, '0')];
+        return d ? !sel.has(d.fips) : false;
+      });
   }
 
   // ── Tooltip handlers ─────────────────────────────────────────────────
@@ -170,13 +210,14 @@ window.MapChart = (() => {
       .attr('rx', 2);
 
     const fmt = mx > 10000 ? d3.format(',.0f') : d3.format(',.1f');
-    legendG.append('text').attr('y', lh + 9).attr('font-size', 8.5).attr('fill', '#6a8aaa')
+    // Text fill is driven by CSS rule `.map-legend text { fill: var(--text-muted); }`
+    legendG.append('text').attr('y', lh + 9).attr('font-size', 8.5)
       .text(fmt(mn));
     legendG.append('text').attr('x', lw / 2).attr('y', lh + 9).attr('font-size', 8.5)
-      .attr('fill', '#6a8aaa').attr('text-anchor', 'middle').text(col.length > 22 ? col.slice(0, 22) + '…' : col);
+      .attr('text-anchor', 'middle').text(col.length > 22 ? col.slice(0, 22) + '…' : col);
     legendG.append('text').attr('x', lw).attr('y', lh + 9).attr('font-size', 8.5)
-      .attr('fill', '#6a8aaa').attr('text-anchor', 'end').text(fmt(mx));
+      .attr('text-anchor', 'end').text(fmt(mx));
   }
 
-  return { init, update };
+  return { init, update, recolor };
 })();

@@ -6,8 +6,12 @@ import os
 app = Flask(__name__)
 
 # ── Load & preprocess data once at startup ──────────────────────────────────
+# Prefer the imputed dataset (state-median fill, see impute_dataset.py).
+# Falls back to the raw CSV if the imputed file isn't present.
 BASE = os.path.dirname(__file__)
-df = pd.read_csv(os.path.join(BASE, "merged_full_all_states_analysis_dataset.csv"))
+_imputed = os.path.join(BASE, "merged_full_all_states_analysis_dataset_imputed.csv")
+_raw     = os.path.join(BASE, "merged_full_all_states_analysis_dataset.csv")
+df = pd.read_csv(_imputed if os.path.exists(_imputed) else _raw)
 
 NUMERIC_COLS = [
     'Life Expectancy',
