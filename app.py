@@ -5,9 +5,22 @@ import os
 
 app = Flask(__name__)
 
-# ── Load & preprocess data once at startup ──────────────────────────────────
+# ── Load data ────────────────────────────────────────────────────────────────
 BASE = os.path.dirname(__file__)
 df = pd.read_csv(os.path.join(BASE, "merged_full_all_states_analysis_dataset.csv"))
+
+# ── Option C data strategy ───────────────────────────────────────────────────
+#
+# DROP variables with >20% missing — these are suppressed by the source for
+# small counties (too few events to report) and imputing them would be misleading.
+#   - Drug Overdose Mortality Rate  (36% missing)
+#   - Firearm Fatalities Rate       (27% missing)
+#   - Homicide Rate                 (55% missing)
+#   - High School Graduation Rate   (21% missing)
+#
+# IMPUTE variables with <10% missing using each county's state-level median.
+# This fills gaps caused by reporting lags or small-county suppression where
+# the neighboring counties are a reasonable reference.
 
 NUMERIC_COLS = [
     'Life Expectancy',
@@ -15,9 +28,6 @@ NUMERIC_COLS = [
     '% Fair or Poor Health',
     'Average Number of Physically Unhealthy Days',
     'Average Number of Mentally Unhealthy Days',
-    'Drug Overdose Mortality Rate',
-    'Firearm Fatalities Rate',
-    'Homicide Rate',
     'Injury Death Rate',
     'Primary Care Physicians Rate',
     '% Uninsured',
@@ -25,12 +35,20 @@ NUMERIC_COLS = [
     'Income Ratio',
     '% Children in Poverty',
     'Median Household Income',
-    'High School Graduation Rate',
     '% Adults with Obesity',
     '% Adults Reporting Currently Smoking',
     '% Rural',
     'Population',
 ]
+
+# Impute each column's missing values with the state-level median
+for col in NUMERIC_COLS:
+    df[col] = pd.to_numeric(df[col], errors='coerce')
+    df[col] = df.groupby('State')[col].transform(
+        lambda x: x.fillna(x.median())
+    )
+    # Any counties whose entire state had no data → fill with national median
+    df[col] = df[col].fillna(df[col].median())
 
 # ── Routes ───────────────────────────────────────────────────────────────────
 
