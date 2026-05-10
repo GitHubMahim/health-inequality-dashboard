@@ -66,18 +66,23 @@ window.ScatterChart = (() => {
     const xLabel = xVar.length > 30 ? xVar.slice(0, 30) + '…' : xVar;
     const yLabel = yVar.length > 30 ? yVar.slice(0, 30) + '…' : yVar;
 
-    g.append('text')
+    // .chart-label class drives fill via CSS variable so theme can switch.
+    g.append('text').attr('class', 'chart-label')
       .attr('x', iw / 2).attr('y', ih + 38)
-      .attr('text-anchor', 'middle').attr('font-size', 9.5).attr('fill', '#6a8aaa')
+      .attr('text-anchor', 'middle').attr('font-size', 9.5)
       .text(xLabel);
-    g.append('text')
+    g.append('text').attr('class', 'chart-label')
       .attr('transform', `translate(-44, ${ih / 2}) rotate(-90)`)
-      .attr('text-anchor', 'middle').attr('font-size', 9.5).attr('fill', '#6a8aaa')
+      .attr('text-anchor', 'middle').attr('font-size', 9.5)
       .text(yLabel);
 
     // ── Dots ─────────────────────────────────────────────────────────────
     dotsG = g.append('g');
 
+    // Set base r/fill/opacity inline on the SVG element so the initial render
+    // doesn't trigger 3,000 CSS transitions (0→4 growth animations were the
+    // cause of the white flash on load). CSS classes still override these
+    // for selection/dim states.
     dotsG.selectAll('circle.dot')
       .data(valid)
       .join('circle')
@@ -139,19 +144,16 @@ window.ScatterChart = (() => {
   }
 
   // ── Public: update (selection changed, axes unchanged) ───────────────
+  // Cheap path. Toggle two classes only — CSS handles fill/opacity/r in a
+  // single batched paint. Avoid .attr() so we don't pay per-element JS cost.
   function update() {
     if (!dotsG) return;
     const sel = window.state.selection;
+    const hasSel = sel.size > 0;
 
     dotsG.selectAll('circle.dot')
-      .classed('dimmed',   d => sel.size > 0 && !sel.has(d.fips))
-      .classed('selected', d => sel.size > 0 &&  sel.has(d.fips))
-      .attr('r',       d => sel.size > 0 && sel.has(d.fips) ? 5.5 : 4)
-      .attr('fill',    d => sel.size > 0 && sel.has(d.fips) ? '#e85d04' : '#3b82f6')
-      .attr('opacity', d => {
-        if (sel.size === 0) return 0.65;
-        return sel.has(d.fips) ? 1 : 0.06;
-      });
+      .classed('dimmed',   d => hasSel && !sel.has(d.fips))
+      .classed('selected', d => hasSel &&  sel.has(d.fips));
   }
 
   // ── Utility ──────────────────────────────────────────────────────────

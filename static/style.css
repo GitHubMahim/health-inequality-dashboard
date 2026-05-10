@@ -1,3 +1,91 @@
+/* ── Theme variables ──────────────────────────────────────────────────────
+   Default theme is DARK. Adding `light` to <body> swaps every variable
+   below to the light palette. Toggle is in main.js via the theme button.
+   --------------------------------------------------------------------- */
+:root {
+  /* surfaces */
+  --bg:              #000;
+  --panel-bg:        #0e1116;
+  --panel-border:    #1f2a3a;
+  --panel-divider:   #1a2230;
+  --panel-shadow:    0 1px 6px rgba(0,0,0,0.5);
+
+  /* text */
+  --text:            #e6eaf0;
+  --text-muted:      #8aa0bb;
+  --text-subtle:     #6a8aaa;
+
+  /* accents (chart titles, axis labels, hover strokes) */
+  --accent:          #64b5f6;
+  --accent-soft:     rgba(100,181,246,0.22);
+  --accent-softer:   rgba(100,181,246,0.12);
+
+  /* axes / grids */
+  --axis-stroke:     #2a3a52;
+  --axis-text:       #8aa0bb;
+  --grid-stroke:     #1a2230;
+
+  /* tooltip */
+  --tooltip-bg:      #1a1f2a;
+  --tooltip-border:  #324560;
+
+  /* map specifics */
+  --county-stroke:   #0e1116;          /* matches panel bg → clean cell separation */
+  --county-no-data:  #2a2f38;          /* dark gray for missing-value counties */
+  --state-border:    #4a5d75;
+  --county-hover:    #64b5f6;
+
+  /* heatmap */
+  --hm-cell-stroke:  #0e1116;
+  --hm-cell-hover:   #64b5f6;
+
+  /* parallel coords */
+  --pcp-axis-domain: #3a4d68;
+
+  /* scatter */
+  --dot-stroke:      rgba(0,0,0,0.5);
+
+  /* header (kept dark in both themes — it's a brand bar) */
+  --header-bg:       linear-gradient(135deg, #0d1b2a 0%, #050a14 100%);
+  --header-border:   #1a2a3a;
+}
+
+body.light {
+  --bg:              #f0f4f9;
+  --panel-bg:        #ffffff;
+  --panel-border:    #dce6f5;
+  --panel-divider:   #eef3fc;
+  --panel-shadow:    0 1px 6px rgba(21,101,192,0.08);
+
+  --text:            #1a2a3a;
+  --text-muted:      #6a8aaa;
+  --text-subtle:     #7a9abb;
+
+  --accent:          #1565c0;
+  --accent-soft:     rgba(21,101,192,0.18);
+  --accent-softer:   rgba(21,101,192,0.08);
+
+  --axis-stroke:     #d0ddf0;
+  --axis-text:       #6a8aaa;
+  --grid-stroke:     #eaf0fb;
+
+  --tooltip-bg:      #ffffff;
+  --tooltip-border:  #90caf9;
+
+  --county-stroke:   #ffffff;
+  --county-no-data:  #e0e4ea;
+  --state-border:    #9aaec0;
+  --county-hover:    #1565c0;
+
+  --hm-cell-stroke:  #ffffff;
+  --hm-cell-hover:   #1565c0;
+
+  --pcp-axis-domain: #c5d8ef;
+
+  --dot-stroke:      rgba(255,255,255,0.6);
+}
+
+
 /* ── Reset ──────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -5,19 +93,22 @@ html, body {
   height: 100%;
   overflow: hidden;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: #f0f4f9;
-  color: #1a2a3a;
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.15s, color 0.15s;
 }
 
 /* ── Header ─────────────────────────────────────────────────────────── */
+/* Same dark blue gradient in both themes — it's a brand accent bar. */
 header {
   height: 52px;
-  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--header-border);
   display: flex;
   align-items: center;
   padding: 0 18px;
   gap: 20px;
-  box-shadow: 0 2px 8px rgba(13,71,161,0.35);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6);
   flex-shrink: 0;
   z-index: 10;
 }
@@ -83,6 +174,9 @@ header {
 }
 .ctrl-btn:hover { background: rgba(255,255,255,0.25); }
 
+/* Theme toggle button — same look as the other ctrl-btns. */
+#theme-toggle { min-width: 34px; text-align: center; font-size: 0.85rem; }
+
 .sel-count {
   font-size: 0.68rem;
   color: #ffcc02;
@@ -98,7 +192,7 @@ header {
   justify-content: center;
   height: calc(100vh - 52px);
   font-size: 1rem;
-  color: #1565c0;
+  color: var(--accent);
   letter-spacing: 0.5px;
 }
 
@@ -108,31 +202,46 @@ header {
   padding: 7px;
 }
 
-/* ── 2×2 chart grid ─────────────────────────────────────────────────── */
+/* ── Chart grid: top row (map + PCP), bottom row (3 equal panels) ───── */
 .charts-grid {
   height: 100%;
   display: grid;
-  grid-template-columns: 3fr 2fr;
+  grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
+  grid-template-areas:
+    "map pcp"
+    "bottom bottom";
   gap: 7px;
+}
+
+#map-panel      { grid-area: map; }
+#parallel-panel { grid-area: pcp; }
+
+.bottom-row {
+  grid-area: bottom;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 7px;
+  min-height: 0;
 }
 
 /* ── Individual chart panels ────────────────────────────────────────── */
 .chart-panel {
-  background: #fff;
-  border: 1px solid #dce6f5;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
   border-radius: 10px;
-  box-shadow: 0 1px 6px rgba(21,101,192,0.08);
+  box-shadow: var(--panel-shadow);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   min-height: 0; /* allow flex children to shrink */
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .panel-header {
   padding: 6px 12px 4px;
   flex-shrink: 0;
-  border-bottom: 1px solid #eef3fc;
+  border-bottom: 1px solid var(--panel-divider);
   display: flex;
   align-items: baseline;
   gap: 6px;
@@ -141,12 +250,12 @@ header {
 .panel-title {
   font-size: 0.76rem;
   font-weight: 700;
-  color: #1565c0;
+  color: var(--accent);
 }
 
 .panel-sub {
   font-size: 0.65rem;
-  color: #7a9abb;
+  color: var(--text-subtle);
   font-weight: 400;
 }
 
@@ -157,107 +266,137 @@ header {
   min-height: 0;
 }
 
-/* Parallel coordinates needs horizontal scroll */
+/* Parallel coordinates fits all axes inside the panel — no scroll needed. */
 #parallel-panel .chart-body {
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: hidden;
 }
 
-/* Heatmap allows scroll if needed */
+/* Heatmap centers its SVG horizontally and vertically inside the panel. */
 #heatmap-panel .chart-body {
   overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ── Shared tooltip ──────────────────────────────────────────────────── */
 #tooltip {
   position: fixed;
   pointer-events: none;
-  background: #fff;
-  border: 1px solid #90caf9;
+  background: var(--tooltip-bg);
+  border: 1px solid var(--tooltip-border);
   border-radius: 8px;
   padding: 8px 13px;
   font-size: 0.74rem;
-  color: #1a2a3a;
+  color: var(--text);
   line-height: 1.7;
-  box-shadow: 0 4px 16px rgba(21,101,192,0.18);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
   opacity: 0;
   transition: opacity 0.08s;
   z-index: 9999;
   max-width: 230px;
 }
-#tooltip b { color: #1565c0; }
+#tooltip b { color: var(--accent); }
 
 /* ── D3 shared axis styles ───────────────────────────────────────────── */
-.axis path, .axis line { stroke: #d0ddf0; stroke-width: 0.8; }
-.axis text { fill: #6a8aaa; font-size: 10px; font-family: inherit; }
-.grid line { stroke: #eaf0fb; stroke-dasharray: 3, 3; }
+.axis path, .axis line { stroke: var(--axis-stroke); stroke-width: 0.8; }
+.axis text { fill: var(--axis-text); font-size: 10px; font-family: inherit; }
+.grid line { stroke: var(--grid-stroke); stroke-dasharray: 3, 3; }
 .grid path { stroke: none; }
 
+/* Generic class for chart-internal labels (axis titles, legend text).
+   Chart JS modules tag these so the theme can drive the fill. */
+.chart-label { fill: var(--text-muted); font-family: inherit; }
+
 /* ── Map ─────────────────────────────────────────────────────────────── */
+/* No transitions — at ~3,000 county paths, simultaneous opacity transitions
+   on every brush/clear were jamming the main thread (visible as the header
+   bar disappearing for a second). Snap-instant feedback is preferable. */
 .county-path {
-  stroke: #fff;
+  stroke: var(--county-stroke);
   stroke-width: 0.25;
   cursor: pointer;
-  transition: opacity 0.12s;
 }
-.county-path.dimmed { opacity: 0.1; }
-.county-path:hover { stroke: #1565c0; stroke-width: 1.5; }
+.county-path.dimmed  { opacity: 0.1; }
+.county-path.no-data { fill: var(--county-no-data); }
+.county-path:hover   { stroke: var(--county-hover); stroke-width: 1.5; }
 
 .state-border {
   fill: none;
-  stroke: #9aaec0;
+  stroke: var(--state-border);
   stroke-width: 0.65;
   pointer-events: none;
 }
 
 /* Map legend */
-.map-legend text { font-family: inherit; }
+.map-legend text { font-family: inherit; fill: var(--text-muted); }
 
 /* ── Scatter plot ────────────────────────────────────────────────────── */
+/* Base r/fill/opacity are set inline in scatter.js for fast initial render.
+   No CSS transitions: animating r/fill/opacity across 3,000 dots
+   simultaneously was blocking paint for ~1s on every selection change.
+   The !important rules below override the inline attrs when classes flip. */
 .dot {
   cursor: pointer;
-  stroke: rgba(255,255,255,0.6);
+  stroke: var(--dot-stroke);
   stroke-width: 0.5;
-  transition: opacity 0.12s, r 0.1s;
 }
-.dot.dimmed { opacity: 0.06 !important; }
-.dot.selected { stroke: #fff; stroke-width: 1.2; }
+.dot.dimmed   { opacity: 0.06 !important; }
+.dot.selected {
+  fill: #ff8a3d !important;     /* brighter orange — pops on both themes */
+  opacity: 1 !important;
+  r: 5.5;
+  stroke: #fff;
+  stroke-width: 1.2;
+}
 
 /* d3.brush appearance */
 .selection {
-  fill: rgba(21,101,192,0.08);
-  stroke: #1565c0;
+  fill: var(--accent-softer);
+  stroke: var(--accent);
   stroke-width: 1;
 }
-.handle { fill: #1565c0; opacity: 0.4; }
+.handle { fill: var(--accent); opacity: 0.4; }
 
 /* ── Parallel Coordinates ────────────────────────────────────────────── */
+/* No transition — same reason as map and scatter. */
 .pcp-line {
   fill: none;
   stroke-width: 0.9;
-  transition: opacity 0.1s;
 }
-.pcp-line.dimmed { opacity: 0.04; }
-.pcp-line.highlighted { stroke-width: 1.4; opacity: 0.85; }
+.pcp-line.dimmed      { opacity: 0.04 !important; }
+.pcp-line.highlighted { stroke-width: 1.4; opacity: 0.85 !important; }
+
+.pcp-axis .domain     { stroke: var(--pcp-axis-domain); }
+.pcp-axis-label       { fill: var(--accent); font-weight: 600; }
 
 .pcp-brush .selection {
-  fill: rgba(21,101,192,0.18);
-  stroke: #1565c0;
+  fill: var(--accent-soft);
+  stroke: var(--accent);
   stroke-width: 1;
 }
 
 /* ── Correlation Heatmap ─────────────────────────────────────────────── */
 .hm-cell {
   cursor: pointer;
-  stroke: #fff;
+  stroke: var(--hm-cell-stroke);
   stroke-width: 0.5;
   transition: stroke-width 0.1s;
 }
-.hm-cell:hover { stroke: #1565c0; stroke-width: 1.5; }
+.hm-cell:hover { stroke: var(--hm-cell-hover); stroke-width: 1.5; }
 .hm-cell.axis-highlight { stroke: #ff8f00; stroke-width: 1.5; }
 
 .hm-label {
   font-family: inherit;
   font-size: 8.5px;
-  fill: #5a7a9a;
+  fill: var(--text-muted);
 }
+
+/* ── State Box Plot ──────────────────────────────────────────────────── */
+/* No transitions — same performance reason as map/scatter/pcp. */
+.bp-state.bp-dimmed      { opacity: 0.08; }
+.bp-state.bp-highlighted .bp-iqr { fill-opacity: 0.95 !important; }
+
+/* ── Ranked Bar Chart ────────────────────────────────────────────────── */
+.rb-bar.rb-dimmed   { opacity: 0.10 !important; }
+.rb-bar.rb-selected rect { stroke: #fff; stroke-width: 1; }

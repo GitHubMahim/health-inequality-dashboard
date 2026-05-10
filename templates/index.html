@@ -29,6 +29,7 @@
         <select id="scatter-y-select"></select>
       </label>
       <button id="clear-btn" class="ctrl-btn">Clear Selection</button>
+      <button id="theme-toggle" class="ctrl-btn" title="Toggle light / dark theme">☾</button>
       <span id="sel-count" class="sel-count"></span>
     </div>
   </header>
@@ -49,35 +50,49 @@
         <div class="chart-body" id="map-wrap"></div>
       </div>
 
-      <!-- Top-right: Scatter Plot -->
-      <div class="chart-panel" id="scatter-panel">
-        <div class="panel-header">
-          <span class="panel-title">Scatter Plot</span>
-          <span class="panel-sub">drag to select · shift+click to multi-select</span>
-        </div>
-        <div class="chart-body" id="scatter-wrap"></div>
-      </div>
-
-      <!-- Bottom-left: Parallel Coordinates -->
+      <!-- Top-right: Parallel Coordinates (moved from bottom-left) -->
       <div class="chart-panel" id="parallel-panel">
         <div class="panel-header">
           <span class="panel-title">Parallel Coordinates</span>
-          <span class="panel-sub">brush each axis to filter · scroll →</span>
+          <span class="panel-sub">brush each axis to filter</span>
         </div>
         <div class="chart-body" id="parallel-wrap"></div>
       </div>
 
-      <!-- Bottom-right: Correlation Heatmap -->
-      <div class="chart-panel" id="heatmap-panel">
-        <div class="panel-header">
-          <span class="panel-title">Correlation Heatmap</span>
-          <span class="panel-sub">click cell → set scatter axes</span>
-        </div>
-        <div class="chart-body" id="heatmap-wrap"></div>
-      </div>
+      <!-- Bottom row: three equal panels -->
+      <div class="bottom-row">
 
-    </div>
-  </div>
+        <!-- Scatter Plot (moved from top-right) -->
+        <div class="chart-panel" id="scatter-panel">
+          <div class="panel-header">
+            <span class="panel-title">Scatter Plot</span>
+            <span class="panel-sub">drag to select · shift+click to multi-select</span>
+          </div>
+          <div class="chart-body" id="scatter-wrap"></div>
+        </div>
+
+        <!-- Box Plot (new) -->
+        <div class="chart-panel" id="boxplot-panel">
+          <div class="panel-header">
+            <span class="panel-title">State Box Plot</span>
+            <span class="panel-sub">county distribution per state · click state to select</span>
+          </div>
+          <div class="chart-body" id="boxplot-wrap"></div>
+        </div>
+
+        <!-- Ranked Bar Chart (new) -->
+        <div class="chart-panel" id="ranked-panel">
+          <div class="panel-header">
+            <span class="panel-title">Ranked Counties</span>
+            <span class="panel-sub">top &amp; bottom counties · click bar to select</span>
+          </div>
+          <div class="chart-body" id="ranked-wrap"></div>
+        </div>
+
+      </div><!-- /.bottom-row -->
+
+    </div><!-- /.charts-grid -->
+  </div><!-- /#dashboard -->
 
   <!-- ── Shared tooltip ────────────────────────────────────────────── -->
   <div id="tooltip"></div>
@@ -86,7 +101,8 @@
   <script src="/static/map.js"></script>
   <script src="/static/scatter.js"></script>
   <script src="/static/parallel.js"></script>
-  <script src="/static/heatmap.js"></script>
+  <script src="/static/boxplot.js"></script>
+  <script src="/static/ranked.js"></script>
   <script src="/static/main.js"></script>
 
 </body>

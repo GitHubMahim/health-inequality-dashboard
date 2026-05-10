@@ -12,8 +12,12 @@ window.ParallelChart = (() => {
   let colorScale;
   const activeBrushes = {};     // col -> [dataMin, dataMax] | null
   const brushInstances = {};    // col -> d3.brushY instance (stored for clearBrushes)
+  let _suppressBrushEvents = false;  // set during clearBrushes() so we don't
+                                     // dispatch O(N) times as each axis clears
 
-  const AXIS_SPACING = 78;    // px between axes
+  // AXIS_SPACING is computed per-draw from the panel width so all 20 axes
+  // fit exactly with no horizontal scroll. See draw() below.
+  let AXIS_SPACING = 78;
   const M = { top: 26, right: 40, bottom: 8, left: 40 };
 
   // Abbreviated axis labels (keep ≤ 14 chars for readability)
@@ -55,19 +59,23 @@ window.ParallelChart = (() => {
     d3.select('#parallel-wrap svg').remove();
 
     const el  = document.getElementById('parallel-wrap');
+    const elW = el.clientWidth;
     const elH = el.clientHeight;
 
     // Guard: don't draw into a zero-size panel (dashboard not yet visible)
-    if (elH < 10) return;
+    if (elH < 10 || elW < 10) return;
     const ih  = elH - M.top - M.bottom;
 
-    // SVG is wide enough for all axes (may exceed panel width → panel scrolls)
-    const svgW = M.left + (cols.length - 1) * AXIS_SPACING + M.right;
+    // Fit all axes exactly inside the panel width — no horizontal scroll.
+    AXIS_SPACING = (cols.length > 1)
+      ? (elW - M.left - M.right) / (cols.length - 1)
+      : 0;
+
     const svgH = elH;
 
     svg = d3.select('#parallel-wrap')
       .append('svg')
-      .attr('width',  Math.max(svgW, el.clientWidth))
+      .attr('width',  elW)
       .attr('height', svgH);
 
     const g = svg.append('g').attr('transform', `translate(${M.left},${M.top})`);
@@ -132,25 +140,26 @@ window.ParallelChart = (() => {
         .attr('class', 'pcp-axis')
         .attr('transform', `translate(${i * AXIS_SPACING}, 0)`);
 
-      // Axis
+      // Axis (domain stroke is themed via CSS rule .pcp-axis .domain)
       axG.append('g')
         .attr('class', 'axis')
-        .call(d3.axisLeft(yScales[col]).ticks(4).tickSize(3))
-        .call(ax => ax.select('.domain').attr('stroke', '#c5d8ef'));
+        .call(d3.axisLeft(yScales[col]).ticks(4).tickSize(3));
 
-      // Label
+      // Label (color/weight come from .pcp-axis-label CSS rule → CSS variable)
       axG.append('text')
+        .attr('class', 'pcp-axis-label')
         .attr('text-anchor', 'middle')
         .attr('y', -10)
         .attr('font-size', 8.5)
-        .attr('font-weight', '600')
-        .attr('fill', '#1565c0')
         .text(SHORT[col] || col);
 
       // d3.brushY for this axis
       const axisBrush = d3.brushY()
         .extent([[-9, 0], [9, ih]])
         .on('end', ({ selection }) => {
+          // During clearBrushes() we suppress per-axis dispatch — otherwise
+          // clearing 20 axes triggers 20 O(N) filters and 20 brush dispatches.
+          if (_suppressBrushEvents) return;
           activeBrushes[col] = selection
             ? [yScales[col].invert(selection[1]), yScales[col].invert(selection[0])]
             : null;
@@ -185,17 +194,16 @@ window.ParallelChart = (() => {
   }
 
   // ── Public: update (dim/highlight based on selection) ─────────────────
+  // Class toggles only. Opacity/stroke-width are handled by CSS rules so we
+  // don't pay per-line .attr() cost on every brush event.
   function update() {
     if (!linesG) return;
     const sel = window.state.selection;
+    const hasSel = sel.size > 0;
 
     linesG.selectAll('path.pcp-line')
-      .classed('dimmed',      d => sel.size > 0 && !sel.has(d.fips))
-      .classed('highlighted', d => sel.size > 0 &&  sel.has(d.fips))
-      .attr('opacity', d => {
-        if (sel.size === 0) return 0.38;
-        return sel.has(d.fips) ? 0.82 : 0.04;
-      });
+      .classed('dimmed',      d => hasSel && !sel.has(d.fips))
+      .classed('highlighted', d => hasSel &&  sel.has(d.fips));
   }
 
   // ── Public: recolor lines when colorVar changes ───────────────────────
@@ -214,14 +222,21 @@ window.ParallelChart = (() => {
   }
 
   // ── Public: clear all axis brushes ───────────────────────────────────
+  // The brush.move() calls below each fire an 'end' event synchronously.
+  // We suppress dispatch during the loop so we only do the work once
+  // (the caller in main.js follows up with a single dispatch('brush', empty)).
   function clearBrushes() {
-    cols.forEach((col, i) => {
-      activeBrushes[col] = null;
-      // Use the stored brush instance to programmatically clear each brush
-      if (svg && brushInstances[col]) {
-        svg.select(`.pcp-brush-${i}`).call(brushInstances[col].move, null);
-      }
-    });
+    _suppressBrushEvents = true;
+    try {
+      cols.forEach((col, i) => {
+        activeBrushes[col] = null;
+        if (svg && brushInstances[col]) {
+          svg.select(`.pcp-brush-${i}`).call(brushInstances[col].move, null);
+        }
+      });
+    } finally {
+      _suppressBrushEvents = false;
+    }
   }
 
   return { init, update, recolor, clearBrushes };

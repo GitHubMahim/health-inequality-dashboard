@@ -51,8 +51,12 @@ window.HeatmapChart = (() => {
     const H  = el.clientHeight;
     const n  = corrCols.length;
 
-    // Fit cell size to available space
-    const labelW = 70;
+    // Fit cell size to available space.
+    // X-labels are rotated -60° (steeper than -45°) so their horizontal
+    // footprint is narrow (length × cos60° ≈ length/2) and adjacent labels
+    // don't pile on top of each other. The vertical footprint is taller
+    // (length × sin60° ≈ length × 0.87), so labelH needs ~95px to clear.
+    const labelW = 78;
     const labelH = 70;
     const legH   = 22;
     const cellSize = Math.max(
@@ -70,6 +74,7 @@ window.HeatmapChart = (() => {
       .append('svg')
       .attr('width',  svgW)
       .attr('height', svgH);
+      
 
     // Diverging color scale: red → white → blue
     const colorScale = d3.scaleDiverging(d3.interpolateRdBu).domain([-1, 0, 1]);
@@ -117,16 +122,21 @@ window.HeatmapChart = (() => {
     });
 
     // ── X-axis labels (diagonal, top) ──────────────────────────────────
+    // -60° rotation = nearly vertical, so each label's horizontal footprint
+    // is small and adjacent labels don't stack. Anchor 6px above the cell
+    // top so there's a visible gap between the label baseline and row 1.
+    const xAnchorY = labelH - 6;
     const xLabG = svgEl.append('g')
-      .attr('transform', `translate(${labelW}, ${labelH - 2})`);
+      .attr('transform', `translate(${labelW}, ${xAnchorY})`);
 
     corrCols.forEach((c, i) => {
+      const cx = i * cellSize + cellSize / 2;
       xLabG.append('text')
         .attr('class', 'hm-label')
-        .attr('x', i * cellSize + cellSize / 2)
-        .attr('y', 0)
+        .attr('x', cx +45)
+        .attr('y', -10)
         .attr('text-anchor', 'end')
-        .attr('transform', `rotate(-45, ${i * cellSize + cellSize / 2}, 0)`)
+        .attr('transform', `rotate(-45, ${cx}, 0)`)
         .text(SHORT[c] || c);
     });
 
@@ -162,20 +172,21 @@ window.HeatmapChart = (() => {
       .attr('width', legW).attr('height', 9)
       .attr('fill', 'url(#hm-leg-grad)').attr('rx', 2);
 
+    // Legend text fill is driven by .hm-label CSS rule → --text-muted
     [{ x: 0, label: '−1', anchor: 'start' },
      { x: legW / 2, label: '0', anchor: 'middle' },
      { x: legW, label: '+1', anchor: 'end' }]
       .forEach(({ x, label, anchor }) => {
-        legG.append('text')
+        legG.append('text').attr('class', 'hm-label')
           .attr('x', x).attr('y', 18)
-          .attr('font-size', 8).attr('fill', '#6a8aaa')
+          .attr('font-size', 8)
           .attr('text-anchor', anchor)
           .text(label);
       });
 
-    legG.append('text')
+    legG.append('text').attr('class', 'hm-label')
       .attr('x', legW / 2).attr('y', 28)
-      .attr('font-size', 7.5).attr('fill', '#9ab').attr('text-anchor', 'middle')
+      .attr('font-size', 7.5).attr('text-anchor', 'middle')
       .text('Pearson r');
 
     // Highlight initially selected axes

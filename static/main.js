@@ -10,22 +10,37 @@ window.state = {
 
 // ── Central dispatch ─────────────────────────────────────────────────────────
 // All charts call window.dispatch() to communicate state changes.
+//
+// Brush updates are coalesced via requestAnimationFrame: if multiple events
+// fire in the same frame (e.g. brush end + scroll), we still only repaint
+// once. With ~3,000 SVG nodes per panel this matters.
+let _brushFrame = null;
+function _flushBrushUpdate() {
+  _brushFrame = null;
+  MapChart.update();
+  ScatterChart.update();
+  ParallelChart.update();
+  BoxPlot.update();
+  RankedBar.update();
+}
+
 window.dispatch = function (type, payload) {
   if (type === 'brush') {
     window.state.selection = payload;
     const n = payload.size;
     document.getElementById('sel-count').textContent =
       n > 0 ? `${n} ${n !== 1 ? 'counties' : 'county'} selected` : '';
-    MapChart.update();
-    ScatterChart.update();
-    ParallelChart.update();
-    // Heatmap has no selection-based update
+    if (_brushFrame == null) {
+      _brushFrame = requestAnimationFrame(_flushBrushUpdate);
+    }
 
   } else if (type === 'colorVar') {
     window.state.colorVar = payload;
     document.getElementById('map-var-label').textContent = payload;
-    MapChart.update();
-    ParallelChart.recolor();  // recolor lines to match new variable
+    MapChart.recolor();        // heavy: rebuild scale + repaint counties + legend
+    ParallelChart.recolor();   // recolor lines to match new variable
+    BoxPlot.recolor();         // redraw box plot for new column
+    RankedBar.recolor();       // redraw ranked bars for new column
 
   } else if (type === 'setAxes') {
     window.state.xVar = payload.x;
@@ -44,16 +59,40 @@ window.dispatch = function (type, payload) {
   }
 };
 
+// ── Theme toggle ─────────────────────────────────────────────────────────────
+// Default theme is dark (no class on body). Adding `light` flips every CSS
+// variable defined in style.css. Preference is persisted in localStorage so
+// reloads keep the user's choice.
+function applyTheme(theme) {
+  document.body.classList.toggle('light', theme === 'light');
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = (theme === 'light') ? '☾' : '☀';
+}
+function initTheme() {
+  const saved = localStorage.getItem('theme') || 'dark';
+  applyTheme(saved);
+}
+function toggleTheme() {
+  const next = document.body.classList.contains('light') ? 'dark' : 'light';
+  localStorage.setItem('theme', next);
+  applyTheme(next);
+}
+// Apply saved theme as early as possible so the page never flashes the wrong one.
+initTheme();
+
 // ── Bootstrap ────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  // Re-apply (the body element exists for sure now) and wire up the button.
+  initTheme();
+  document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
   const TOPO_URL = 'https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json';
 
   Promise.all([
     fetch('/api/data').then(r => r.json()),
-    fetch('/api/correlations').then(r => r.json()),
     fetch(TOPO_URL).then(r => r.json()),
   ])
-  .then(([apiData, corrData, topology]) => {
+  .then(([apiData, topology]) => {
     window.state.data    = apiData.data;
     window.state.columns = apiData.columns;
 
@@ -104,7 +143,8 @@ window.addEventListener('DOMContentLoaded', () => {
       MapChart.init(apiData.data, topology);
       ScatterChart.init(apiData.data);
       ParallelChart.init(apiData.data, apiData.columns);
-      HeatmapChart.init(corrData);
+      BoxPlot.init(apiData.data);
+      RankedBar.init(apiData.data);
     });
   })
   .catch(err => {

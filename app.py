@@ -5,9 +5,10 @@ import os
 
 app = Flask(__name__)
 
-# ── Load data ────────────────────────────────────────────────────────────────
+# ── Load & preprocess data once at startup ──────────────────────────────────
 BASE = os.path.dirname(__file__)
-df = pd.read_csv(os.path.join(BASE, "merged_full_all_states_analysis_dataset.csv"))
+_raw = os.path.join(BASE, "merged_full_all_states_analysis_dataset.csv")
+df = pd.read_csv(_raw)
 
 # ── Option C data strategy ───────────────────────────────────────────────────
 #
