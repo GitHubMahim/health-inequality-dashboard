@@ -193,7 +193,23 @@ window.BoxPlot = (() => {
         .on('mouseout', () => tip().style('opacity', 0))
         .on('click', (e, datum) => {
           e.stopPropagation();
-          window.dispatch('brush', new Set(datum.fips));
+          const additive = e.shiftKey || e.ctrlKey || e.metaKey;
+          if (additive) {
+            // Multi-select: toggle this state in/out of the current selection.
+            // If every county of the clicked state is already selected, remove
+            // them (un-toggle); otherwise add them to the existing selection.
+            const next = new Set(window.state.selection);
+            const allIn = datum.fips.every(f => next.has(f));
+            if (allIn) {
+              datum.fips.forEach(f => next.delete(f));
+            } else {
+              datum.fips.forEach(f => next.add(f));
+            }
+            window.dispatch('brush', next);
+          } else {
+            // Plain click: replace the selection with just this state.
+            window.dispatch('brush', new Set(datum.fips));
+          }
         });
     });
   }
